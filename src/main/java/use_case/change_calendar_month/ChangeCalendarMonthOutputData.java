@@ -4,14 +4,17 @@ import entity.Calendar;
 import entity.Event;
 import java.util.List;
 
-/**
- * Output data for changing the calendar by month.
- */
 public class ChangeCalendarMonthOutputData {
     private final List<Calendar> calendarList;
     private final List<Event> eventList;
 
     public ChangeCalendarMonthOutputData(List<Calendar> calendarList, List<Event> eventList) {
+        if (calendarList == null) {
+            throw new NullPointerException("Calendar list cannot be null");
+        }
+        if (eventList == null) {
+            throw new NullPointerException("Event list cannot be null");
+        }
         this.calendarList = calendarList;
         this.eventList = eventList;
     }

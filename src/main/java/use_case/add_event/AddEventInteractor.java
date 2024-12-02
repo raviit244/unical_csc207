@@ -4,7 +4,6 @@ import data_access.AddEventDataAccessInterface;
 import data_access.CalendarDataAccessObjectFactory;
 import entity.Calendar;
 import entity.Event;
-
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
@@ -28,9 +27,31 @@ public class AddEventInteractor implements AddEventInputBoundary {
                 return;
             }
 
-            LocalDate date = LocalDate.parse(inputData.getDate());
-            LocalTime startTime = LocalTime.parse(inputData.getStartTime());
-            LocalTime endTime = LocalTime.parse(inputData.getEndTime());
+            // Parse date first
+            LocalDate date;
+            try {
+                date = LocalDate.parse(inputData.getDate());
+            } catch (DateTimeParseException e) {
+                addEventPresenter.prepareFailView("Invalid date format. Use YYYY-MM-DD");
+                return;
+            }
+
+            // Parse times separately
+            LocalTime startTime;
+            LocalTime endTime;
+            try {
+                startTime = LocalTime.parse(inputData.getStartTime());
+            } catch (DateTimeParseException e) {
+                addEventPresenter.prepareFailView("Invalid time format. Use HH:mm (24-hour format)");
+                return;
+            }
+
+            try {
+                endTime = LocalTime.parse(inputData.getEndTime());
+            } catch (DateTimeParseException e) {
+                addEventPresenter.prepareFailView("Invalid time format. Use HH:mm (24-hour format)");
+                return;
+            }
 
             if (endTime.isBefore(startTime)) {
                 addEventPresenter.prepareFailView("End time cannot be before start time");
@@ -58,12 +79,6 @@ public class AddEventInteractor implements AddEventInputBoundary {
             AddEventOutputData outputData = new AddEventOutputData(event, false);
             addEventPresenter.prepareSuccessView(outputData);
 
-        } catch (DateTimeParseException e) {
-            if (e.getParsedString().contains(":")) {
-                addEventPresenter.prepareFailView("Invalid time format. Use HH:mm (24-hour format)");
-            } else {
-                addEventPresenter.prepareFailView("Invalid date format. Use YYYY-MM-DD");
-            }
         } catch (Exception e) {
             addEventPresenter.prepareFailView("Error adding event: " + e.getMessage());
         }
