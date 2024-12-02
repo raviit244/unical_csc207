@@ -17,4 +17,5 @@ public interface User {
      */
     String getPassword();
 
+    void addCalendar(Calendar calendar);
 }
