@@ -3,17 +3,23 @@ package entity;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * A simple implementation of the User interface.
- */
 public class CommonUser implements User {
-
     private final String name;
     private final String password;
     private List<Calendar> calendars;
 
     public CommonUser(String name, String password) {
-        this.name = name;
+        if (name == null || password == null) {
+            throw new NullPointerException("Username and password cannot be null");
+        }
+        if (name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be empty");
+        }
+        if (password.trim().isEmpty()) {
+            throw new IllegalArgumentException("Password cannot be empty");
+        }
+
+        this.name = name.trim();
         this.password = password;
         this.calendars = new ArrayList<>();
     }
@@ -30,6 +36,9 @@ public class CommonUser implements User {
 
     @Override
     public void addCalendar(Calendar calendar) {
+        if (calendar == null) {
+            throw new NullPointerException("Calendar cannot be null");
+        }
         calendars.add(calendar);
     }
 }

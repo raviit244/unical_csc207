@@ -7,6 +7,9 @@ public class DeleteEventOutputData {
   private final boolean useCaseFailed;
 
   public DeleteEventOutputData(Event event, boolean useCaseFailed) {
+    if (event == null) {
+      throw new NullPointerException("Event cannot be null");
+    }
     this.event = event;
     this.useCaseFailed = useCaseFailed;
   }
