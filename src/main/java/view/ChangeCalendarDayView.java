@@ -27,6 +27,8 @@ public class ChangeCalendarDayView extends JPanel implements ActionListener, Pro
   private final JButton deleteButton;
   private final JButton backButton;
 
+  private AddEventView addEventView;
+  private DeleteEventController deleteEventController;
   private ChangeCalendarDayController changeCalendarDayController;
 
   public ChangeCalendarDayView(ChangeCalendarDayViewModel viewModel) {
@@ -80,8 +82,53 @@ public class ChangeCalendarDayView extends JPanel implements ActionListener, Pro
 
   @Override
   public void actionPerformed(ActionEvent evt) {
-    if (evt.getSource() == backButton) {
+    if (evt.getSource() == addButton) {
+      showAddEventDialog();
+    } else if (evt.getSource() == deleteButton) {
+      handleDeleteEvent();
+    } else if (evt.getSource() == backButton) {
       handleBackToMonth();
+    }
+  }
+
+  private void showAddEventDialog() {
+    if (addEventView != null) {
+      LocalDate currentDate = dayViewModel.getState().getDate();
+      System.out.println("Opening add event dialog for date: " + currentDate);
+
+      addEventView.setSelectedDate(currentDate);
+
+      JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
+        "Add Event", true);
+
+      Container oldParent = addEventView.getParent();
+      if (oldParent != null) {
+        oldParent.remove(addEventView);
+      }
+
+      dialog.setContentPane(addEventView);
+      dialog.pack();
+      dialog.setLocationRelativeTo(this);
+      addEventView.setVisible(true);
+      dialog.setVisible(true);
+    }
+  }
+
+  private void handleDeleteEvent() {
+    Event selectedEvent = eventList.getSelectedValue();
+    if (selectedEvent != null) {
+      int confirm = JOptionPane.showConfirmDialog(
+        this,
+        ChangeCalendarDayViewModel.DELETE_CONFIRM_MESSAGE,
+        ChangeCalendarDayViewModel.DELETE_EVENT_BUTTON_LABEL,
+        JOptionPane.YES_NO_OPTION
+      );
+
+      if (confirm == JOptionPane.YES_OPTION && deleteEventController != null) {
+        deleteEventController.execute(selectedEvent);
+      }
+    } else {
+      errorLabel.setText(ChangeCalendarDayViewModel.ERROR_NO_SELECTION);
     }
   }
 
@@ -105,6 +152,10 @@ public class ChangeCalendarDayView extends JPanel implements ActionListener, Pro
         updateDateLabel(state.getDate());
         updateEventsList(state.getEventList());
         errorLabel.setText(state.getError());
+
+        if (addEventView != null) {
+          addEventView.setSelectedDate(state.getDate());
+        }
       }
     }
   }
@@ -121,16 +172,16 @@ public class ChangeCalendarDayView extends JPanel implements ActionListener, Pro
 
     @Override
     public Component getListCellRendererComponent(
-            JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+      JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
       Event event = (Event) value;
       String displayText = String.format("%s - %s to %s (%s)",
-              event.getEventName(),
-              event.getStartTime().format(TIME_FORMATTER),
-              event.getEndTime().format(TIME_FORMATTER),
-              event.getCalendarApi().getCalendarName());
+        event.getEventName(),
+        event.getStartTime().format(TIME_FORMATTER),
+        event.getEndTime().format(TIME_FORMATTER),
+        event.getCalendarApi().getCalendarName());
 
       Component component = super.getListCellRendererComponent(
-              list, displayText, index, isSelected, cellHasFocus);
+        list, displayText, index, isSelected, cellHasFocus);
 
       // Optional: Add custom styling based on time
       if (!isSelected) {
@@ -141,6 +192,15 @@ public class ChangeCalendarDayView extends JPanel implements ActionListener, Pro
 
       return component;
     }
+  }
+
+  // Setters for dependent views and controllers
+  public void setAddEventView(AddEventView view) {
+    this.addEventView = view;
+  }
+
+  public void setDeleteEventController(DeleteEventController controller) {
+    this.deleteEventController = controller;
   }
 
   public void setChangeCalendarDayController(ChangeCalendarDayController controller) {
