@@ -26,7 +26,22 @@ import interface_adapter.merge_calendars.MergeCalendarsController;
 import java.util.ArrayList;
 import java.time.Month;
 
+import java.awt.KeyboardFocusManager;
+import java.awt.event.KeyEvent;
+import javax.swing.KeyStroke;
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
+import java.awt.event.InputEvent;
+
 public class ChangeCalendarMonthView extends JPanel implements ActionListener, PropertyChangeListener {
+    private int selectedDay = 1;
+    private int selectedRow = 0;
+    private int selectedCol = 0;
+
     public final String viewName = "calendar_month";
     private final ChangeCalendarMonthViewModel changeCalendarMonthViewModel;
     private ChangeCalendarMonthController controller;
@@ -47,6 +62,12 @@ public class ChangeCalendarMonthView extends JPanel implements ActionListener, P
     private DayViewOpener dayViewOpener;
     private static final int CELL_HEIGHT = 100;
     private static final int MAX_PREVIEW_EVENTS = 3;
+
+    private final Color SELECTED_BORDER_COLOR = new Color(0, 120, 215);
+    private final Color SELECTED_BACKGROUND_COLOR = new Color(229, 243, 255);
+    private JPanel[][] dayCells; // Store references to day cells
+    private int currentMonthLength;
+    private int firstDayOffset;
 
 
 
@@ -88,7 +109,185 @@ public class ChangeCalendarMonthView extends JPanel implements ActionListener, P
         centerPanel.add(new JScrollPane(calendarPanel), BorderLayout.CENTER);
         add(centerPanel, BorderLayout.CENTER);
 
+        setupKeyboardNavigation();
+        setFocusable(true);
+        requestFocusInWindow();
+
+        googleButton.setToolTipText("Switch to Google Calendar (Ctrl+G)");
+        notionButton.setToolTipText("Switch to Notion Calendar (Ctrl+N)");
+        mergeButton.setToolTipText("Merge Calendars (Ctrl+T)");
+
+
         updateCalendarView();
+    }
+
+    private void setupKeyboardNavigation() {
+        InputMap inputMap = getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        ActionMap actionMap = getActionMap();
+
+        // Arrow key navigation
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0), "moveLeft");
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), "moveRight");
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0), "moveUp");
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), "moveDown");
+
+        // Calendar switching shortcuts
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK), "googleCalendar");
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), "notionCalendar");
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK), "mergeCalendars");
+
+        // Enter to open day view
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "openDay");
+        // Escape to return to month view (when in day view)
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "returnToMonth");
+
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_M, InputEvent.CTRL_DOWN_MASK), "focusMonth");
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_Y, InputEvent.CTRL_DOWN_MASK), "focusYear");
+
+        // Register actions
+        actionMap.put("moveLeft", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                moveSelection(-1, 0);
+            }
+        });
+
+        actionMap.put("moveRight", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                moveSelection(1, 0);
+            }
+        });
+
+        actionMap.put("moveUp", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                moveSelection(0, -1);
+            }
+        });
+
+        actionMap.put("moveDown", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                moveSelection(0, 1);
+            }
+        });
+
+        actionMap.put("googleCalendar", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleCalendarClick(changeCalendarMonthViewModel.getState().getGoogleCalendar(), "Google");
+            }
+        });
+
+        actionMap.put("notionCalendar", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleCalendarClick(changeCalendarMonthViewModel.getState().getNotionCalendar(), "Notion");
+            }
+        });
+
+        actionMap.put("mergeCalendars", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleMergeCalendars();
+            }
+        });
+
+        actionMap.put("openDay", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                openSelectedDay();
+            }
+        });
+
+        actionMap.put("focusMonth", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                monthSelector.requestFocusInWindow();
+                monthSelector.showPopup();
+            }
+        });
+
+        actionMap.put("focusYear", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                yearSelector.requestFocusInWindow();
+                yearSelector.showPopup();
+            }
+        });
+    }
+
+
+    private void moveSelection(int deltaCol, int deltaRow) {
+        int newRow = selectedRow + deltaRow;
+        int newCol = selectedCol + deltaCol;
+
+        // Handle wrapping and invalid positions
+        if (newCol < 0) {
+            newCol = 6;
+            newRow--;
+        } else if (newCol > 6) {
+            newCol = 0;
+            newRow++;
+        }
+
+        if (newRow < 0) newRow = 5;
+        if (newRow > 5) newRow = 0;
+
+        // Check if the new position contains a valid day
+        int dayAtPosition = calculateDayAtPosition(newRow, newCol);
+        if (dayAtPosition > 0 && dayAtPosition <= currentMonthLength) {
+            selectedRow = newRow;
+            selectedCol = newCol;
+            selectedDay = dayAtPosition;
+            updateSelectedDayVisuals();
+        }
+    }
+    private int calculateDayAtPosition(int row, int col) {
+        return row * 7 + col - firstDayOffset + 1;
+    }
+
+    private void updateSelectedDayVisuals() {
+        // Reset all cells to default appearance
+        for (JPanel[] row : dayCells) {
+            for (JPanel cell : row) {
+                if (cell != null) {
+                    cell.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+                    cell.setBackground(Color.WHITE);
+                }
+            }
+        }
+
+        // Highlight selected cell
+        JPanel selectedCell = dayCells[selectedRow][selectedCol];
+        if (selectedCell != null) {
+            selectedCell.setBorder(BorderFactory.createLineBorder(SELECTED_BORDER_COLOR, 2));
+            selectedCell.setBackground(SELECTED_BACKGROUND_COLOR);
+        }
+    }
+
+    private void updateSelectedDay() {
+        Month selectedMonth = (Month) monthSelector.getSelectedItem();
+        int selectedYear = (Integer) yearSelector.getSelectedItem();
+        LocalDate firstOfMonth = LocalDate.of(selectedYear, selectedMonth, 1);
+        int offset = firstOfMonth.getDayOfWeek().getValue() % 7;
+
+        selectedDay = selectedRow * 7 + selectedCol - offset + 1;
+
+        // Make sure the selected day is valid for the current month
+        if (selectedDay > 0 && selectedDay <= selectedMonth.length(Year.isLeap(selectedYear))) {
+            repaint();
+        }
+    }
+
+    private void openSelectedDay() {
+        if (selectedDay > 0) {
+            Month selectedMonth = (Month) monthSelector.getSelectedItem();
+            int selectedYear = (Integer) yearSelector.getSelectedItem();
+            LocalDate selectedDate = LocalDate.of(selectedYear, selectedMonth, selectedDay);
+            handleDaySelection(selectedDate);
+        }
     }
 
     public void setMergeCalendarsController(MergeCalendarsController controller) {
@@ -99,7 +298,7 @@ public class ChangeCalendarMonthView extends JPanel implements ActionListener, P
         calendarPanel.removeAll();
         Map<LocalDate, List<Event>> eventsByDate = getEventsByDate();
 
-        // Add day of week headers
+        // Add day headers
         String[] dayNames = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
         for (String dayName : dayNames) {
             JLabel dayLabel = new JLabel(dayName, SwingConstants.CENTER);
@@ -110,50 +309,68 @@ public class ChangeCalendarMonthView extends JPanel implements ActionListener, P
 
         Month selectedMonth = (Month) monthSelector.getSelectedItem();
         int selectedYear = (Integer) yearSelector.getSelectedItem();
-
         LocalDate firstDayOfMonth = LocalDate.of(selectedYear, selectedMonth, 1);
-        int monthLength = selectedMonth.length(Year.isLeap(selectedYear));
-        int firstDayOfWeek = firstDayOfMonth.getDayOfWeek().getValue() % 7;
+        currentMonthLength = selectedMonth.length(Year.isLeap(selectedYear));
+        firstDayOffset = firstDayOfMonth.getDayOfWeek().getValue() % 7;
+
+        // Initialize dayCells array
+        dayCells = new JPanel[6][7];
 
         // Add empty cells before first day
-        for (int i = 0; i < firstDayOfWeek; i++) {
+        for (int i = 0; i < firstDayOffset; i++) {
             JPanel emptyCell = new JPanel();
             emptyCell.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+            dayCells[0][i] = emptyCell;
             calendarPanel.add(emptyCell);
         }
 
-        // Add day cells with event previews
-        for (int day = 1; day <= monthLength; day++) {
-            final LocalDate cellDate = LocalDate.of(selectedYear, selectedMonth, day);
-            JPanel dayCell = createDayCell(cellDate, eventsByDate.get(cellDate));
+        // Add day cells
+        int currentRow = 0;
+        int currentCol = firstDayOffset;
+
+        for (int day = 1; day <= currentMonthLength; day++) {
+            if (currentCol == 7) {
+                currentCol = 0;
+                currentRow++;
+            }
+
+            LocalDate cellDate = LocalDate.of(selectedYear, selectedMonth, day);
+            JPanel dayCell = createDayCell(cellDate, eventsByDate.get(cellDate), day);
+            dayCells[currentRow][currentCol] = dayCell;
             calendarPanel.add(dayCell);
+            currentCol++;
         }
 
-        // Add empty cells for remaining grid spaces
-        int totalCells = 42;
-        int remainingCells = totalCells - (monthLength + firstDayOfWeek);
-        for (int i = 0; i < remainingCells; i++) {
-            JPanel emptyCell = new JPanel();
-            emptyCell.setBorder(BorderFactory.createLineBorder(Color.GRAY));
-            calendarPanel.add(emptyCell);
+        // Fill remaining cells
+        while (currentRow < 6) {
+            while (currentCol < 7) {
+                JPanel emptyCell = new JPanel();
+                emptyCell.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+                dayCells[currentRow][currentCol] = emptyCell;
+                calendarPanel.add(emptyCell);
+                currentCol++;
+            }
+            currentRow++;
+            currentCol = 0;
         }
 
+        updateSelectedDayVisuals();
         calendarPanel.revalidate();
         calendarPanel.repaint();
     }
 
-    private JPanel createDayCell(LocalDate date, List<Event> events) {
+    private JPanel createDayCell(LocalDate date, List<Event> events, int dayNumber) {
         JPanel cellPanel = new JPanel();
         cellPanel.setLayout(new BoxLayout(cellPanel, BoxLayout.Y_AXIS));
         cellPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
         cellPanel.setBackground(Color.WHITE);
         cellPanel.setPreferredSize(new Dimension(0, CELL_HEIGHT));
 
-        // Day number at the top
+        // Add day number
+        JLabel dayLabel = new JLabel(String.valueOf(dayNumber));
+        dayLabel.setFont(new Font("Arial", date.equals(LocalDate.now()) ? Font.BOLD : Font.PLAIN, 14));
         JPanel dayHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
         dayHeader.setOpaque(false);
-        JLabel dayLabel = new JLabel(String.valueOf(date.getDayOfMonth()));
-        dayLabel.setFont(new Font("Arial", date.equals(LocalDate.now()) ? Font.BOLD : Font.PLAIN, 14));
         dayHeader.add(dayLabel);
         cellPanel.add(dayHeader);
 
@@ -183,35 +400,37 @@ public class ChangeCalendarMonthView extends JPanel implements ActionListener, P
         cellPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (dayViewOpener != null) {
-                    ChangeCalendarMonthState currentState = changeCalendarMonthViewModel.getState();
-                    List<Calendar> calendarsToUse = new ArrayList<>();
-
-                    if (currentState.isMergedView()) {
-                        // In merged view, get events from both calendars
-                        if (currentState.getGoogleCalendar() != null) {
-                            calendarsToUse.add(currentState.getGoogleCalendar());
-                        }
-                        if (currentState.getNotionCalendar() != null) {
-                            calendarsToUse.add(currentState.getNotionCalendar());
-                        }
-                    } else {
-                        // In single calendar view, only get events from active calendar
-                        Calendar activeCalendar = currentState.getActiveCalendar();
-                        if (activeCalendar != null) {
-                            calendarsToUse.add(activeCalendar);
-                        }
-                    }
-
-                    dayViewOpener.openDayView(date);
-                    if (dayController != null && !calendarsToUse.isEmpty()) {
-                        dayController.execute(calendarsToUse, date.toString());
-                    }
-                }
+                handleDaySelection(date);
             }
         });
 
         return cellPanel;
+    }
+    // Add this new method to handle day selection consistently between mouse and keyboard
+    private void handleDaySelection(LocalDate date) {
+        if (dayViewOpener != null) {
+            ChangeCalendarMonthState currentState = changeCalendarMonthViewModel.getState();
+            List<Calendar> calendarsToUse = new ArrayList<>();
+
+            if (currentState.isMergedView()) {
+                if (currentState.getGoogleCalendar() != null) {
+                    calendarsToUse.add(currentState.getGoogleCalendar());
+                }
+                if (currentState.getNotionCalendar() != null) {
+                    calendarsToUse.add(currentState.getNotionCalendar());
+                }
+            } else {
+                Calendar activeCalendar = currentState.getActiveCalendar();
+                if (activeCalendar != null) {
+                    calendarsToUse.add(activeCalendar);
+                }
+            }
+
+            dayViewOpener.openDayView(date);
+            if (dayController != null && !calendarsToUse.isEmpty()) {
+                dayController.execute(calendarsToUse, date.toString());
+            }
+        }
     }
 
     private String truncateText(String text, int maxLength) {
@@ -280,6 +499,23 @@ public class ChangeCalendarMonthView extends JPanel implements ActionListener, P
         monthSelector.setSelectedItem(now.getMonth());
         yearSelector.setSelectedItem(now.getYear());
 
+        monthSelector.setToolTipText("Select Month (Ctrl+M)");
+        yearSelector.setToolTipText("Select Year (Ctrl+Y)");
+
+        monthSelector.addPopupMenuListener(new PopupMenuListener() {
+            @Override
+            public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+                // Return focus to main panel after selection
+                ChangeCalendarMonthView.this.requestFocusInWindow();
+            }
+
+            @Override
+            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {}
+
+            @Override
+            public void popupMenuCanceled(PopupMenuEvent e) {}
+        });
+
         monthSelector.addActionListener(this);
         yearSelector.addActionListener(this);
 
@@ -340,6 +576,8 @@ public class ChangeCalendarMonthView extends JPanel implements ActionListener, P
             currentState.setCurrMonth(monthName);
             currentState.setCurrYear(selectedYear);
             controller.execute(calList, monthName, selectedYear);
+
+            this.requestFocusInWindow();
         }
     }
 

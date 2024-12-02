@@ -84,12 +84,12 @@ public class EditEventView extends JPanel implements ActionListener, PropertyCha
         EditEventState state = editEventViewModel.getState();
         if (state.getOriginalEvent() != null) {
           editEventController.execute(
-            eventNameField.getText(),
-            dateField.getText(),
-            startTimeField.getText(),
-            endTimeField.getText(),
-            state.getOriginalEvent().getCalendarApi(),
-            state.getOriginalEvent()
+                  eventNameField.getText(),
+                  dateField.getText(),
+                  startTimeField.getText(),
+                  endTimeField.getText(),
+                  state.getOriginalEvent().getCalendarApi(),
+                  state.getOriginalEvent()
           );
         }
       }
@@ -175,16 +175,16 @@ public class EditEventView extends JPanel implements ActionListener, PropertyCha
 
     // Document listeners
     eventNameField.getDocument().addDocumentListener(
-      new DocumentChangeListener(s -> updateState(state -> state.setEventName(s)))
+            new DocumentChangeListener(s -> updateState(state -> state.setEventName(s)))
     );
     dateField.getDocument().addDocumentListener(
-      new DocumentChangeListener(s -> updateState(state -> state.setDate(s)))
+            new DocumentChangeListener(s -> updateState(state -> state.setDate(s)))
     );
     startTimeField.getDocument().addDocumentListener(
-      new DocumentChangeListener(s -> updateState(state -> state.setStartTime(s)))
+            new DocumentChangeListener(s -> updateState(state -> state.setStartTime(s)))
     );
     endTimeField.getDocument().addDocumentListener(
-      new DocumentChangeListener(s -> updateState(state -> state.setEndTime(s)))
+            new DocumentChangeListener(s -> updateState(state -> state.setEndTime(s)))
     );
   }
 
@@ -235,12 +235,12 @@ public class EditEventView extends JPanel implements ActionListener, PropertyCha
       EditEventState state = editEventViewModel.getState();
       if (state.getOriginalEvent() != null) {
         editEventController.execute(
-          eventNameField.getText(),
-          dateField.getText(),
-          startTimeField.getText(),
-          endTimeField.getText(),
-          state.getOriginalEvent().getCalendarApi(),
-          state.getOriginalEvent()
+                eventNameField.getText(),
+                dateField.getText(),
+                startTimeField.getText(),
+                endTimeField.getText(),
+                state.getOriginalEvent().getCalendarApi(),
+                state.getOriginalEvent()
         );
       }
     }
