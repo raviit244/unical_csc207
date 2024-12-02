@@ -9,6 +9,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.InputEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.time.LocalDate;
@@ -19,6 +20,13 @@ import javax.swing.event.DocumentListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.text.BadLocationException;
 import java.util.function.Consumer;
+
+import java.awt.event.KeyEvent;
+import javax.swing.KeyStroke;
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
 
 public class AddEventView extends JPanel implements ActionListener, PropertyChangeListener {
   private class DocumentChangeListener implements DocumentListener {
@@ -53,6 +61,7 @@ public class AddEventView extends JPanel implements ActionListener, PropertyChan
     }
   }
 
+
   private final String viewName = "add event";
   private final AddEventViewModel addEventViewModel;
   private final AddEventController addEventController;
@@ -77,10 +86,43 @@ public class AddEventView extends JPanel implements ActionListener, PropertyChan
     this.addEventController = controller;
     this.addEventViewModel.addPropertyChangeListener(this);
 
+    InputMap inputMap = getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+    ActionMap actionMap = getActionMap();
+    inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK), "add");
+    inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "cancel");
+
+    actionMap.put("add", new AbstractAction() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        Calendar selectedCalendar = (Calendar) calendarComboBox.getSelectedItem();
+        if (selectedCalendar != null) {
+          try {
+            String currentDate = dateField.getText();
+            String startTime = startTimeField.getText();
+            String endTime = endTimeField.getText();
+
+            addEventController.execute(
+                    eventNameField.getText(),
+                    currentDate,
+                    startTime,
+                    endTime,
+                    selectedCalendar
+            );
+          } catch (DateTimeParseException ex) {
+            timeErrorField.setText("Invalid time format. Use HH:mm (24-hour format)");
+          }
+        } else {
+          calendarErrorField.setText("Please select a calendar");
+        }
+      }
+    });
+
     // Initialize UI components
     calendarComboBox = new JComboBox<>(availableCalendars.toArray(new Calendar[0]));
     addButton = new JButton(AddEventViewModel.ADD_BUTTON_LABEL);
     cancelButton = new JButton(AddEventViewModel.CANCEL_BUTTON_LABEL);
+
+    addButton.setToolTipText("Add Event (Ctrl+A)");
 
     // Set up layout
     setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -148,6 +190,8 @@ public class AddEventView extends JPanel implements ActionListener, PropertyChan
     LocalDate currentDate = LocalDate.now();
     setSelectedDate(currentDate);
   }
+
+
 
   private void addDocumentListeners() {
     eventNameField.getDocument().addDocumentListener(

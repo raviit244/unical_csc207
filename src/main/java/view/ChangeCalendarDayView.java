@@ -20,6 +20,17 @@ import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import java.time.format.DateTimeFormatter;
+
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyAdapter;
+import javax.swing.KeyStroke;
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
+import java.awt.event.InputEvent;
+
 public class ChangeCalendarDayView extends JPanel implements ActionListener, PropertyChangeListener {
   private final String viewName = "calendar_day";
   private final ChangeCalendarDayViewModel dayViewModel;
@@ -30,6 +41,11 @@ public class ChangeCalendarDayView extends JPanel implements ActionListener, Pro
   private final JButton addButton;
   private final JButton deleteButton;
   private final JButton backButton;
+
+  private static final KeyStroke ESCAPE_KEY = KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0);
+  private static final KeyStroke ADD_EVENT_KEY = KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK);
+  private static final KeyStroke DELETE_EVENT_KEY = KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK);
+  private static final KeyStroke EDIT_EVENT_KEY = KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.CTRL_DOWN_MASK);
 
   private JButton editButton;
   private EditEventView editEventView;
@@ -42,6 +58,62 @@ public class ChangeCalendarDayView extends JPanel implements ActionListener, Pro
 
   public void setMergeCalendarsController(MergeCalendarsController controller) {
     this.mergeCalendarsController = controller;
+  }
+
+  private void setupKeyboardNavigation() {
+    setFocusable(true);
+
+    InputMap inputMap = getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+    ActionMap actionMap = getActionMap();
+
+    // Add keyboard shortcuts
+    inputMap.put(ESCAPE_KEY, "back");
+    inputMap.put(ADD_EVENT_KEY, "addEvent");
+    inputMap.put(DELETE_EVENT_KEY, "deleteEvent");
+    inputMap.put(EDIT_EVENT_KEY, "editEvent");
+
+    // Register actions
+    actionMap.put("back", new AbstractAction() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        handleBackToMonth();
+      }
+    });
+
+    actionMap.put("addEvent", new AbstractAction() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        showAddEventDialog();
+      }
+    });
+
+    actionMap.put("deleteEvent", new AbstractAction() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        handleDeleteEvent();
+      }
+    });
+
+    actionMap.put("editEvent", new AbstractAction() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        handleEditEvent();
+      }
+    });
+
+    // Enable keyboard navigation in the event list
+    eventList.setFocusable(true);
+    eventList.addKeyListener(new KeyAdapter() {
+      @Override
+      public void keyPressed(KeyEvent e) {
+        int selectedIndex = eventList.getSelectedIndex();
+        if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+          handleEditEvent();
+        } else if (e.getKeyCode() == KeyEvent.VK_DELETE) {
+          handleDeleteEvent();
+        }
+      }
+    });
   }
 
   public ChangeCalendarDayView(ChangeCalendarDayViewModel viewModel) {
@@ -88,6 +160,14 @@ public class ChangeCalendarDayView extends JPanel implements ActionListener, Pro
     buttonPanel.add(deleteButton);
     buttonPanel.add(backButton);
     add(buttonPanel, BorderLayout.SOUTH);
+
+    addButton.setToolTipText("Add Event (Ctrl+A)");
+    deleteButton.setToolTipText("Delete Event (Ctrl+D)");
+    editButton.setToolTipText("Edit Event (Ctrl+E)");
+    backButton.setToolTipText("Back to Month View (Esc)");
+
+    setupKeyboardNavigation();
+
   }
 
   private void setupListeners() {
@@ -197,18 +277,26 @@ public class ChangeCalendarDayView extends JPanel implements ActionListener, Pro
     }
   }
 
-  private void updateDateLabel(LocalDate date) {
-    dateLabel.setText("Events for " + date.toString());
-  }
+//  private void updateDateLabel(LocalDate date) {
+//    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy");
+//    String formattedDate = date.format(formatter);
+//    dateLabel.setText("Events for " + formattedDate);
+//  }
 
   @Override
   public void propertyChange(PropertyChangeEvent evt) {
     if (evt.getPropertyName().equals("state")) {
       ChangeCalendarDayState state = (ChangeCalendarDayState) evt.getNewValue();
       if (state != null) {
-        updateDateLabel(state.getDate());
+        //updateDateLabel(state.getDate());
         updateEventsList(state.getEventList());
         errorLabel.setText(state.getError());
+
+        // Select first event if exists
+        if (eventListModel.getSize() > 0) {
+          eventList.setSelectedIndex(0);
+          eventList.requestFocusInWindow();
+        }
 
         if (addEventView != null) {
           addEventView.setSelectedDate(state.getDate());
@@ -229,13 +317,15 @@ public class ChangeCalendarDayView extends JPanel implements ActionListener, Pro
 
     @Override
     public Component getListCellRendererComponent(
-            JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            JList<?> list, Object value, int index,
+            boolean isSelected, boolean cellHasFocus) {
+
       Event event = (Event) value;
       String displayText = String.format("%s - %s to %s (%s)",
               event.getEventName(),
               event.getStartTime().format(TIME_FORMATTER),
               event.getEndTime().format(TIME_FORMATTER),
-              event.getCalendarApi().getCalendarName());  // Added calendar name to distinguish source
+              event.getCalendarApi().getCalendarName());
 
       Component component = super.getListCellRendererComponent(
               list, displayText, index, isSelected, cellHasFocus);
@@ -247,6 +337,14 @@ public class ChangeCalendarDayView extends JPanel implements ActionListener, Pro
         } else if (event.getCalendarApi().getCalendarApiName().equals("NotionCalendar")) {
           setForeground(new Color(0, 0, 139));  // Dark blue for Notion
         }
+      }
+
+      // Add keyboard focus visual indication
+      if (cellHasFocus) {
+        setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0, 120, 215), 2),
+                BorderFactory.createEmptyBorder(2, 5, 2, 5)
+        ));
       }
 
       return component;
