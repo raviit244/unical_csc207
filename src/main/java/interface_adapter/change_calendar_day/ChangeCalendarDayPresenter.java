@@ -1,11 +1,15 @@
 package interface_adapter.change_calendar_day;
 
-import use_case.change_calendar_day.ChangeCalendarDayOutputBoundary;
-import use_case.change_calendar_day.ChangeCalendarDayOutputData;
-import entity.Event;
 import java.time.LocalTime;
 import java.util.List;
 
+import entity.Event;
+import use_case.change_calendar_day.ChangeCalendarDayOutputBoundary;
+import use_case.change_calendar_day.ChangeCalendarDayOutputData;
+
+/**
+ * The presenter for Change Day Calendar Use Case.
+ */
 public class ChangeCalendarDayPresenter implements ChangeCalendarDayOutputBoundary {
     private final ChangeCalendarDayViewModel changeCalendarDayViewModel;
 
@@ -15,7 +19,7 @@ public class ChangeCalendarDayPresenter implements ChangeCalendarDayOutputBounda
 
     @Override
     public void prepareSuccessView(ChangeCalendarDayOutputData outputData) {
-        ChangeCalendarDayState state = new ChangeCalendarDayState();
+        final ChangeCalendarDayState state = new ChangeCalendarDayState();
         state.setCalendarList(outputData.getCalendarList());
         state.setEventList(outputData.getEventList());
         state.setUseCaseFailed(false);
@@ -30,7 +34,7 @@ public class ChangeCalendarDayPresenter implements ChangeCalendarDayOutputBounda
 
     @Override
     public void prepareFailView(String error) {
-        ChangeCalendarDayState state = new ChangeCalendarDayState();
+        final ChangeCalendarDayState state = new ChangeCalendarDayState();
         state.setError(error);
         state.setUseCaseFailed(true);
         changeCalendarDayViewModel.setState(state);
@@ -38,29 +42,29 @@ public class ChangeCalendarDayPresenter implements ChangeCalendarDayOutputBounda
     }
 
     private void sortEvents(List<Event> events) {
-        events.sort((e1, e2) -> {
+        events.sort((eventOne, eventTwo) -> {
             // First compare by date
-            int dateCompare = e1.getDate().compareTo(e2.getDate());
+            final int dateCompare = eventOne.getDate().compareTo(eventTwo.getDate());
             if (dateCompare != 0) {
                 return dateCompare;
             }
 
             // If dates are equal, compare by start time
-            LocalTime time1 = e1.getStartTime();
-            LocalTime time2 = e2.getStartTime();
-            int timeCompare = time1.compareTo(time2);
+            final LocalTime time1 = eventOne.getStartTime();
+            final LocalTime time2 = eventTwo.getStartTime();
+            final int timeCompare = time1.compareTo(time2);
             if (timeCompare != 0) {
                 return timeCompare;
             }
 
             // If start times are equal, compare by end time
-            int endTimeCompare = e1.getEndTime().compareTo(e2.getEndTime());
+            final int endTimeCompare = eventOne.getEndTime().compareTo(eventTwo.getEndTime());
             if (endTimeCompare != 0) {
                 return endTimeCompare;
             }
 
             // If all times are equal, sort by event name
-            return e1.getEventName().compareTo(e2.getEventName());
+            return eventOne.getEventName().compareTo(eventTwo.getEventName());
         });
     }
 }
