@@ -2,9 +2,11 @@ package view;
 
 import entity.Calendar;
 import entity.Event;
+import interface_adapter.change_calendar_day.ChangeCalendarDayController;
 import interface_adapter.change_calendar_month.ChangeCalendarMonthController;
 import interface_adapter.change_calendar_month.ChangeCalendarMonthState;
 import interface_adapter.change_calendar_month.ChangeCalendarMonthViewModel;
+
 
 import javax.swing.*;
 import java.awt.*;
@@ -20,11 +22,15 @@ import java.time.Year;
 import java.time.format.TextStyle;
 import java.util.*;
 import java.util.List;
+import interface_adapter.merge_calendars.MergeCalendarsController;
+import java.util.ArrayList;
+import java.time.Month;
 
 public class ChangeCalendarMonthView extends JPanel implements ActionListener, PropertyChangeListener {
     public final String viewName = "calendar_month";
     private final ChangeCalendarMonthViewModel changeCalendarMonthViewModel;
     private ChangeCalendarMonthController controller;
+    private ChangeCalendarDayController dayController;
 
     // UI Components
     private JPanel calendarPanel = new JPanel(new GridLayout(0, 7, 2, 2));
@@ -34,11 +40,15 @@ public class ChangeCalendarMonthView extends JPanel implements ActionListener, P
     private final JButton notionButton = new JButton(ChangeCalendarMonthViewModel.NOTION_CALENDAR_BUTTON_LABEL);
     private final JButton outlookButton = new JButton(ChangeCalendarMonthViewModel.OUTLOOK_CALENDAR_BUTTON_LABEL);
     private final JLabel errorLabel;
+    private final JButton mergeButton = new JButton("Merge Calendars");
+    private MergeCalendarsController mergeCalendarsController;
+    private static final Color ACTIVE_CALENDAR_COLOR = new Color(200, 200, 255);
 
     private DayViewOpener dayViewOpener;
-    private static final Color ACTIVE_CALENDAR_COLOR = new Color(200, 200, 255);
     private static final int CELL_HEIGHT = 100;
     private static final int MAX_PREVIEW_EVENTS = 3;
+
+
 
     public interface DayViewOpener {
         void openDayView(LocalDate date);
@@ -79,6 +89,10 @@ public class ChangeCalendarMonthView extends JPanel implements ActionListener, P
         add(centerPanel, BorderLayout.CENTER);
 
         updateCalendarView();
+    }
+
+    public void setMergeCalendarsController(MergeCalendarsController controller) {
+        this.mergeCalendarsController = controller;
     }
 
     private void updateCalendarView() {
@@ -170,20 +184,30 @@ public class ChangeCalendarMonthView extends JPanel implements ActionListener, P
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (dayViewOpener != null) {
-                    System.out.println("Day clicked: " + date); // Debug print
+                    ChangeCalendarMonthState currentState = changeCalendarMonthViewModel.getState();
+                    List<Calendar> calendarsToUse = new ArrayList<>();
+
+                    if (currentState.isMergedView()) {
+                        // In merged view, get events from both calendars
+                        if (currentState.getGoogleCalendar() != null) {
+                            calendarsToUse.add(currentState.getGoogleCalendar());
+                        }
+                        if (currentState.getNotionCalendar() != null) {
+                            calendarsToUse.add(currentState.getNotionCalendar());
+                        }
+                    } else {
+                        // In single calendar view, only get events from active calendar
+                        Calendar activeCalendar = currentState.getActiveCalendar();
+                        if (activeCalendar != null) {
+                            calendarsToUse.add(activeCalendar);
+                        }
+                    }
+
                     dayViewOpener.openDayView(date);
+                    if (dayController != null && !calendarsToUse.isEmpty()) {
+                        dayController.execute(calendarsToUse, date.toString());
+                    }
                 }
-            }
-
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                cellPanel.setBackground(new Color(230, 230, 250));
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                cellPanel.setBackground(events != null && !events.isEmpty() ?
-                        new Color(255, 245, 245) : Color.WHITE);
             }
         });
 
@@ -212,7 +236,7 @@ public class ChangeCalendarMonthView extends JPanel implements ActionListener, P
     private void updateButtonColors(Calendar activeCalendar) {
         googleButton.setBackground(UIManager.getColor("Button.background"));
         notionButton.setBackground(UIManager.getColor("Button.background"));
-        outlookButton.setBackground(UIManager.getColor("Button.background"));
+        mergeButton.setBackground(UIManager.getColor("Button.background"));
 
         if (activeCalendar != null) {
             switch (activeCalendar.getCalendarApiName()) {
@@ -222,27 +246,23 @@ public class ChangeCalendarMonthView extends JPanel implements ActionListener, P
                 case "NotionCalendar":
                     notionButton.setBackground(ACTIVE_CALENDAR_COLOR);
                     break;
-                case "OutlookCalendar":
-                    outlookButton.setBackground(ACTIVE_CALENDAR_COLOR);
-                    break;
             }
         }
     }
 
     private JPanel createSidePanel() {
         JPanel sidePanel = new JPanel();
-        sidePanel.setLayout(new GridLayout(5, 1, 10, 10));
+        sidePanel.setLayout(new GridLayout(4, 1, 10, 10));  // Changed from 6 to 4 rows
         sidePanel.setPreferredSize(new Dimension(200, 0));
         sidePanel.setBackground(new Color(68, 168, 167));
 
-        // Just add action listeners to the already initialized buttons
         googleButton.addActionListener(this);
         notionButton.addActionListener(this);
-        outlookButton.addActionListener(this);
+        mergeButton.addActionListener(this);
 
+        sidePanel.add(mergeButton);  // Moved to top
         sidePanel.add(googleButton);
         sidePanel.add(notionButton);
-        sidePanel.add(outlookButton);
 
         return sidePanel;
     }
@@ -277,10 +297,33 @@ public class ChangeCalendarMonthView extends JPanel implements ActionListener, P
             handleCalendarClick(changeCalendarMonthViewModel.getState().getGoogleCalendar(), "Google");
         } else if (evt.getSource() == notionButton) {
             handleCalendarClick(changeCalendarMonthViewModel.getState().getNotionCalendar(), "Notion");
-        } else if (evt.getSource() == outlookButton) {
-            handleCalendarClick(changeCalendarMonthViewModel.getState().getOutlookCalendar(), "Outlook");
+        } else if (evt.getSource() == mergeButton) {
+            handleMergeCalendars();
         } else if (evt.getSource() == monthSelector || evt.getSource() == yearSelector) {
             handleMonthYearChange();
+        }
+    }
+
+    private void handleMergeCalendars() {
+        ChangeCalendarMonthState currentState = changeCalendarMonthViewModel.getState();
+        List<Calendar> calendars = new ArrayList<>();
+
+        if (currentState.getGoogleCalendar() != null) {
+            calendars.add(currentState.getGoogleCalendar());
+        }
+        if (currentState.getNotionCalendar() != null) {
+            calendars.add(currentState.getNotionCalendar());
+        }
+
+        if (!calendars.isEmpty()) {
+            Month selectedMonth = (Month) monthSelector.getSelectedItem();
+            Integer selectedYear = (Integer) yearSelector.getSelectedItem();
+            String date = String.format("%d-%02d-01", selectedYear, selectedMonth.getValue());
+
+            mergeCalendarsController.execute(calendars, date);
+
+            updateButtonColors(null);
+            mergeButton.setBackground(ACTIVE_CALENDAR_COLOR);
         }
     }
 
@@ -304,6 +347,7 @@ public class ChangeCalendarMonthView extends JPanel implements ActionListener, P
         if (calendar != null) {
             ChangeCalendarMonthState currentState = changeCalendarMonthViewModel.getState();
             currentState.setActiveCalendar(calendar);
+            currentState.setMergedView(false);  // Reset merged view when clicking individual calendar
 
             List<Calendar> calList = new ArrayList<>();
             calList.add(calendar);
@@ -337,6 +381,11 @@ public class ChangeCalendarMonthView extends JPanel implements ActionListener, P
     public void setController(ChangeCalendarMonthController controller) {
         this.controller = controller;
     }
+
+    public void setDayController(ChangeCalendarDayController controller) {
+        this.dayController = controller;
+    }
+
 
     public String getViewName() {
         return viewName;
