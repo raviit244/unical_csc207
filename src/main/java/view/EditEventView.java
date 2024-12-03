@@ -95,6 +95,17 @@ public class EditEventView extends JPanel implements ActionListener, PropertyCha
       }
     });
 
+    actionMap.put("cancel", new AbstractAction() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        resetFields();
+        Window window = SwingUtilities.getWindowAncestor(EditEventView.this);
+        if (window instanceof JDialog) {
+          window.dispose();
+        }
+      }
+    });
+
     // Initialize components
     saveButton = new JButton(EditEventViewModel.SAVE_BUTTON_LABEL);
     cancelButton = new JButton(EditEventViewModel.CANCEL_BUTTON_LABEL);
