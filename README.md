@@ -45,7 +45,6 @@ UniCal solves the common problem of managing multiple calendars across different
 ### 3. Multi-Calendar Support
 - Google Calendar integration
 - Notion Calendar integration
-- Outlook Calendar integration
 - Easy switching between calendar services
 
 ## 📸Screenshots
@@ -64,7 +63,6 @@ UniCal solves the common problem of managing multiple calendars across different
 
 ### Dependencies
 - Google Calendar API Client Library v4.0+
-- Microsoft Graph API SDK v5.0+
 - OkHttp3
 - JSON libraries (org.json)
 
@@ -93,7 +91,6 @@ bash
    ...
    }`
 
-
 #### Notion
 1. Create an integration in Notion
 2. Configure database access
@@ -101,19 +98,6 @@ bash
 
 Authentication Token: your_notion_token
 Database ID: your_database_id
-
-
-#### Outlook
-1. Register application in Azure Portal
-2. Configure OAuth settings
-3. Save credentials:
-   `{
-   "client_id": "your_client_id",
-   "client_secret": "your_client_secret",
-   "tenant_id": "your_tenant_id",
-   "redirect_uri": "http://localhost"
-   }`
-
 
 ### 3. Application Setup
 bash
