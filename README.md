@@ -118,9 +118,7 @@ Database ID: your_database_id
 ### 3. Application Setup
 bash
 # Clone the repository
-`git clone https://github.com/NeuralNetNinja1729/CSC207_UniCal.git`
-
-`cd unical`
+https://github.com/raviit244/unical_csc207.git![image](https://github.com/user-attachments/assets/2ffa910b-f5c3-4ca7-a9cb-00c4785ba330)
 
 # Compile & Run the project
 Run `src/main/java/app/Main.java`
