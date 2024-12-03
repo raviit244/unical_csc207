@@ -1,12 +1,13 @@
 package use_case.change_calendar_month;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
 import data_access.CalendarDataAccessObjectFactory;
 import data_access.GetEventsDataAccessInterface;
 import entity.Calendar;
 import entity.Event;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * The Change Month Calendar Interactor.
@@ -25,21 +26,22 @@ public class ChangeCalendarMonthInteractor implements ChangeCalendarMonthInputBo
     @Override
     public void execute(ChangeCalendarMonthInputData inputData) {
         try {
-            List<Event> events = new ArrayList<>();
-            List<Calendar> calendars = inputData.getCalendarList();
+            final List<Event> events = new ArrayList<>();
+            final List<Calendar> calendars = inputData.getCalendarList();
 
             for (Calendar calendar : calendars) {
-                GetEventsDataAccessInterface getEventsDataAccessObject =
+                final GetEventsDataAccessInterface getEventsDataAccessObject =
                         (GetEventsDataAccessInterface) calendarDataAccessObjectFactory
                                 .getCalendarDataAccessObject(calendar);
 
                 events.addAll(getEventsDataAccessObject.fetchEventsMonth(LocalDate.parse(inputData.getDate())));
             }
 
-            ChangeCalendarMonthOutputData outputData = new ChangeCalendarMonthOutputData(calendars, events);
+            final ChangeCalendarMonthOutputData outputData = new ChangeCalendarMonthOutputData(calendars, events);
             changeCalendarMonthPresenter.prepareSuccessView(outputData);
-        } catch (Exception e) {
-            changeCalendarMonthPresenter.prepareFailView("Error fetching calendar data: " + e.getMessage());
+        }
+        catch (Exception exception) {
+            changeCalendarMonthPresenter.prepareFailView("Error fetching calendar data: " + exception.getMessage());
         }
     }
 }

@@ -1,9 +1,13 @@
 package use_case.change_calendar_month;
 
-import entity.Calendar;
-import entity.Event;
 import java.util.List;
 
+import entity.Calendar;
+import entity.Event;
+
+/**
+ * Output Data for the Calendar Month View use-case.
+ */
 public class ChangeCalendarMonthOutputData {
     private final List<Calendar> calendarList;
     private final List<Event> eventList;

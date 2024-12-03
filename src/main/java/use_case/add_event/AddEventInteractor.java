@@ -1,13 +1,17 @@
 package use_case.add_event;
 
-import data_access.AddEventDataAccessInterface;
-import data_access.CalendarDataAccessObjectFactory;
-import entity.Calendar;
-import entity.Event;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 
+import data_access.AddEventDataAccessInterface;
+import data_access.CalendarDataAccessObjectFactory;
+import entity.Calendar;
+import entity.Event;
+
+/**
+ * Use-case interactor that runs the Add Event use-case.
+ */
 public class AddEventInteractor implements AddEventInputBoundary {
     private final CalendarDataAccessObjectFactory calendarDataAccessObjectFactory;
     private final AddEventOutputBoundary addEventPresenter;
@@ -28,27 +32,30 @@ public class AddEventInteractor implements AddEventInputBoundary {
             }
 
             // Parse date first
-            LocalDate date;
+            final LocalDate date;
             try {
                 date = LocalDate.parse(inputData.getDate());
-            } catch (DateTimeParseException e) {
+            }
+            catch (DateTimeParseException dateTimeParseException) {
                 addEventPresenter.prepareFailView("Invalid date format. Use YYYY-MM-DD");
                 return;
             }
 
             // Parse times separately
-            LocalTime startTime;
-            LocalTime endTime;
+            final LocalTime startTime;
+            final LocalTime endTime;
             try {
                 startTime = LocalTime.parse(inputData.getStartTime());
-            } catch (DateTimeParseException e) {
+            }
+            catch (DateTimeParseException dateTimeParseException) {
                 addEventPresenter.prepareFailView("Invalid time format. Use HH:mm (24-hour format)");
                 return;
             }
 
             try {
                 endTime = LocalTime.parse(inputData.getEndTime());
-            } catch (DateTimeParseException e) {
+            }
+            catch (DateTimeParseException dateTimeParseException) {
                 addEventPresenter.prepareFailView("Invalid time format. Use HH:mm (24-hour format)");
                 return;
             }
@@ -58,8 +65,8 @@ public class AddEventInteractor implements AddEventInputBoundary {
                 return;
             }
 
-            Calendar calendar = inputData.getCalendar();
-            Event event = new Event(
+            final Calendar calendar = inputData.getCalendar();
+            final Event event = new Event(
                     inputData.getEventName(),
                     date,
                     startTime,
@@ -67,7 +74,7 @@ public class AddEventInteractor implements AddEventInputBoundary {
                     calendar
             );
 
-            AddEventDataAccessInterface addEventDataAccessObject =
+            final AddEventDataAccessInterface addEventDataAccessObject =
                     (AddEventDataAccessInterface) calendarDataAccessObjectFactory
                             .getCalendarDataAccessObject(calendar);
 
@@ -76,11 +83,12 @@ public class AddEventInteractor implements AddEventInputBoundary {
                 return;
             }
 
-            AddEventOutputData outputData = new AddEventOutputData(event, false);
+            final AddEventOutputData outputData = new AddEventOutputData(event, false);
             addEventPresenter.prepareSuccessView(outputData);
 
-        } catch (Exception e) {
-            addEventPresenter.prepareFailView("Error adding event: " + e.getMessage());
+        }
+        catch (Exception exception) {
+            addEventPresenter.prepareFailView("Error adding event: " + exception.getMessage());
         }
     }
 }
