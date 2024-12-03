@@ -3,6 +3,9 @@ package entity;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * The representation of a common user in our program, an implementation of the User interface.
+ */
 public class CommonUser implements User {
     private final String name;
     private final String password;

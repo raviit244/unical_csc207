@@ -1,21 +1,22 @@
 package entity;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
-import com.google.api.client.http.HttpRequestInitializer;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.gson.GsonFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
+import com.google.api.client.http.HttpRequestInitializer;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.gson.GsonFactory;
 
 /**
  * Represents a Google Calendar.
  */
 public class GoogleCalendar implements Calendar {
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
-    private static final String CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events";
+    private static final String CALENDAR_SCOPE =
+            "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events";
 
     private final String credentials;
     private final String accountName;
@@ -53,8 +54,9 @@ public class GoogleCalendar implements Calendar {
         // Validate credentials format
         try {
             initializeCredential();
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Invalid credentials format: " + e.getMessage());
+        }
+        catch (IOException exception) {
+            throw new IllegalArgumentException("Invalid credentials format: " + exception.getMessage());
         }
     }
 
