@@ -2,6 +2,9 @@ package interface_adapter.change_calendar_month;
 
 import interface_adapter.ViewModel;
 
+/**
+ * The view model for Change Month Calendar Use Case.
+ */
 public class ChangeCalendarMonthViewModel extends ViewModel<ChangeCalendarMonthState> {
     public static final String TITLE_LABEL = "Calendar View";
     public static final String MONTH_LABEL = "Month:";

@@ -1,33 +1,27 @@
 package interface_adapter.change_calendar_month;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import entity.Calendar;
 import entity.Event;
 import entity.User;
 
-import java.util.ArrayList;
-import java.util.List;
-
+/**
+ * The view state for Change Day Calendar Use Case.
+ */
 public class ChangeCalendarMonthState {
-    private User currentUser = null;
-    private Calendar googleCalendar = null;
-    private Calendar notionCalendar = null;
-    private Calendar outlookCalendar = null;
-    private Calendar activeCalendar = null;
+    private User currentUser;
+    private Calendar googleCalendar;
+    private Calendar notionCalendar;
+    private Calendar outlookCalendar;
+    private Calendar activeCalendar;
     private List<Calendar> currCalendarList = new ArrayList<>();
     private List<Event> currEvents = new ArrayList<>();
     private String currMonth = "";
-    private Integer currYear = null;
+    private Integer currYear;
     private String error = "";
-    private boolean mergedView = false;  // Add this field
-
-    public boolean isMergedView() {
-        return mergedView;
-    }
-
-    public void setMergedView(boolean mergedView) {
-        this.mergedView = mergedView;
-    }
-
+    private boolean mergedView;
 
     // Copy constructor
     public ChangeCalendarMonthState(ChangeCalendarMonthState copy) {
@@ -45,7 +39,17 @@ public class ChangeCalendarMonthState {
     }
 
     // Default constructor
-    public ChangeCalendarMonthState() {}
+    public ChangeCalendarMonthState() {
+
+    }
+
+    public boolean isMergedView() {
+        return mergedView;
+    }
+
+    public void setMergedView(boolean mergedView) {
+        this.mergedView = mergedView;
+    }
 
     // Getters and setters with defensive copying for collections
     public Calendar getActiveCalendar() {
