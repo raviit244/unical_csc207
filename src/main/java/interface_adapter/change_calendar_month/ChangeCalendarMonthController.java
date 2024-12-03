@@ -1,12 +1,16 @@
 package interface_adapter.change_calendar_month;
 
-import use_case.change_calendar_month.ChangeCalendarMonthInputBoundary;
-import use_case.change_calendar_month.ChangeCalendarMonthInputData;
-import entity.Calendar;
-import java.util.List;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import entity.Calendar;
+import use_case.change_calendar_month.ChangeCalendarMonthInputBoundary;
+import use_case.change_calendar_month.ChangeCalendarMonthInputData;
+
+/**
+ * The controller for Change Month Calendar Use Case.
+ */
 public class ChangeCalendarMonthController {
     private final ChangeCalendarMonthInputBoundary changeCalendarMonthUseCaseInteractor;
     private final Map<String, String> monthNumeric;
@@ -16,11 +20,18 @@ public class ChangeCalendarMonthController {
         this.monthNumeric = initializeMonthMap();
     }
 
+    /**
+     * Executes the change calendar day use case with the given calendars and date.
+     *
+     * @param calendarList list of calendars to fetch events from
+     * @param month the Month
+     * @param year The Year
+     */
     public void execute(List<Calendar> calendarList, String month, Integer year) {
-        String monthNum = monthNumeric.get(month);
-        String date = String.format("%d-%s-01", year, monthNum);
+        final String monthNum = monthNumeric.get(month);
+        final String date = String.format("%d-%s-01", year, monthNum);
 
-        ChangeCalendarMonthInputData inputData = new ChangeCalendarMonthInputData(
+        final ChangeCalendarMonthInputData inputData = new ChangeCalendarMonthInputData(
                 calendarList,
                 date
         );
@@ -28,8 +39,12 @@ public class ChangeCalendarMonthController {
         changeCalendarMonthUseCaseInteractor.execute(inputData);
     }
 
+    /**
+     * Month String to Number.
+     * @return Returns a Mapping between Month and the Number
+     */
     private Map<String, String> initializeMonthMap() {
-        Map<String, String> map = new HashMap<>();
+        final Map<String, String> map = new HashMap<>();
         map.put("January", "01");
         map.put("February", "02");
         map.put("March", "03");
