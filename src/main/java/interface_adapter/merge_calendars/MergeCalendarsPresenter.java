@@ -5,6 +5,9 @@ import interface_adapter.change_calendar_month.ChangeCalendarMonthViewModel;
 import use_case.merge_calendars.MergeCalendarsOutputBoundary;
 import use_case.merge_calendars.MergeCalendarsOutputData;
 
+/**
+ * The presenter for Merge Calendar Use Case.
+ */
 public class MergeCalendarsPresenter implements MergeCalendarsOutputBoundary {
     private final ChangeCalendarMonthViewModel monthViewModel;
 
@@ -14,7 +17,7 @@ public class MergeCalendarsPresenter implements MergeCalendarsOutputBoundary {
 
     @Override
     public void prepareSuccessView(MergeCalendarsOutputData outputData) {
-        ChangeCalendarMonthState state = monthViewModel.getState();
+        final ChangeCalendarMonthState state = monthViewModel.getState();
         state.setCurrCalendarList(outputData.getCalendars());
         state.setCurrEvents(outputData.getEvents());
         state.setMergedView(true);
@@ -25,7 +28,7 @@ public class MergeCalendarsPresenter implements MergeCalendarsOutputBoundary {
 
     @Override
     public void prepareFailView(String error) {
-        ChangeCalendarMonthState state = monthViewModel.getState();
+        final ChangeCalendarMonthState state = monthViewModel.getState();
         state.setError(error);
         monthViewModel.setState(state);
         monthViewModel.firePropertyChanged();

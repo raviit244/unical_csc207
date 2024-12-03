@@ -1,13 +1,17 @@
 package interface_adapter.merge_calendars;
 
-import entity.Calendar;
-
-import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.*;
+
+import entity.Calendar;
+
+/**
+ * The View for Merge Calendar Use Case.
+ */
 public class MergeCalendarsView extends JPanel {
     private final MergeCalendarsController mergeCalendarsController;
     private final JButton mergeButton;
@@ -20,7 +24,7 @@ public class MergeCalendarsView extends JPanel {
         add(mergeButton, BorderLayout.CENTER);
 
         mergeButton.addActionListener(e -> {
-            List<Calendar> calendarsToMerge = getSelectedCalendars();
+            final List<Calendar> calendarsToMerge = getSelectedCalendars();
             if (!calendarsToMerge.isEmpty()) {
                 mergeCalendarsController.execute(calendarsToMerge, getCurrentDate());
             }
