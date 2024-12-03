@@ -17,14 +17,18 @@ public class CalendarDataAccessObjectFactory {
      * @throws IllegalArgumentException if the Calendar type is not supported
      */
     public Object getCalendarDataAccessObject(Calendar calendar) {
+        Object dataAccessObject = null;
         switch (calendar.getCalendarApiName()) {
             case "GoogleCalendar":
-                return new GoogleCalendarDataAccessObject((GoogleCalendar) calendar);
+                dataAccessObject = new GoogleCalendarDataAccessObject((GoogleCalendar) calendar);
+                break;
             case "NotionCalendar":
-                return new NotionCalendarDataAccessObject((NotionCalendar) calendar);
+                dataAccessObject = new NotionCalendarDataAccessObject((NotionCalendar) calendar);
+                break;
             default:
                 throw new IllegalArgumentException("Unsupported calendar type: " + calendar.getCalendarApiName());
         }
+        return dataAccessObject;
     }
 }
 

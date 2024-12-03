@@ -1,12 +1,5 @@
 package data_access;
 
-import entity.Calendar;
-import entity.Event;
-import entity.NotionCalendar;
-import okhttp3.*;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -18,6 +11,17 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import entity.Calendar;
+import entity.Event;
+import entity.NotionCalendar;
+import okhttp3.*;
+
+/**
+ * Data Access Object for accessing Notion API.
+ */
 public class NotionCalendarDataAccessObject implements GetEventsDataAccessInterface, AddEventDataAccessInterface,
         DeleteEventDataAccessInterface {
     private static final String DATE_PROPERTY_NAME = "Due Date";
@@ -60,23 +64,26 @@ public class NotionCalendarDataAccessObject implements GetEventsDataAccessInterf
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 final String response = getResponse(connection);
                 parseEventsFromResponse(response, events, calendar);
-            } else {
-                String errorResponse = "";
+            }
+            else {
+                String errorResponse;
                 try (BufferedReader reader = new BufferedReader(
                         new InputStreamReader(connection.getErrorStream()))) {
                     String line;
-                    StringBuilder responseBuilder = new StringBuilder();
+                    final StringBuilder responseBuilder = new StringBuilder();
                     while ((line = reader.readLine()) != null) {
                         responseBuilder.append(line);
                     }
                     errorResponse = responseBuilder.toString();
-                } catch (Exception e) {
+                }
+                catch (Exception exception) {
                     errorResponse = "Could not read error response";
                 }
                 System.err.println("Failed to fetch events. Response code: " + responseCode);
                 System.err.println("Error response: " + errorResponse);
             }
-        } catch (Exception exception) {
+        }
+        catch (Exception exception) {
             System.err.println("Error fetching Notion events: " + exception.getMessage());
             exception.printStackTrace();
         }
@@ -102,18 +109,19 @@ public class NotionCalendarDataAccessObject implements GetEventsDataAccessInterf
                     // Get date from date property
                     final JSONObject dueDateProperty = properties.getJSONObject(DATE_PROPERTY_NAME);
                     if (!dueDateProperty.has(DATE) || dueDateProperty.getJSONObject(DATE).isNull("start")) {
-                        continue; // Skip events with invalid dates
+                        continue;
                     }
 
                     final String dateString = dueDateProperty.getJSONObject(DATE).getString("start");
-                    LocalDate date = LocalDate.parse(dateString.split("T")[0]); // Handle both date-only and datetime formats
+                    final LocalDate date = LocalDate.parse(dateString.split("T")[0]);
 
                     // Parse start time
                     LocalTime startTime = LocalTime.of(0, 0);
                     if (properties.has(START_TIME_PROPERTY_NAME)) {
-                        JSONObject startTimeProperty = properties.getJSONObject(START_TIME_PROPERTY_NAME);
-                        if (startTimeProperty.has("rich_text") && !startTimeProperty.getJSONArray("rich_text").isEmpty()) {
-                            String startTimeStr = startTimeProperty.getJSONArray("rich_text")
+                        final JSONObject startTimeProperty = properties.getJSONObject(START_TIME_PROPERTY_NAME);
+                        if (startTimeProperty.has("rich_text") && !startTimeProperty
+                                .getJSONArray("rich_text").isEmpty()) {
+                            final String startTimeStr = startTimeProperty.getJSONArray("rich_text")
                                     .getJSONObject(0)
                                     .getJSONObject("text")
                                     .getString("content");
@@ -124,9 +132,9 @@ public class NotionCalendarDataAccessObject implements GetEventsDataAccessInterf
                     // Parse end time
                     LocalTime endTime = LocalTime.of(23, 59);
                     if (properties.has(END_TIME_PROPERTY_NAME)) {
-                        JSONObject endTimeProperty = properties.getJSONObject(END_TIME_PROPERTY_NAME);
+                        final JSONObject endTimeProperty = properties.getJSONObject(END_TIME_PROPERTY_NAME);
                         if (endTimeProperty.has("rich_text") && !endTimeProperty.getJSONArray("rich_text").isEmpty()) {
-                            String endTimeStr = endTimeProperty.getJSONArray("rich_text")
+                            final String endTimeStr = endTimeProperty.getJSONArray("rich_text")
                                     .getJSONObject(0)
                                     .getJSONObject("text")
                                     .getString("content");
@@ -135,14 +143,16 @@ public class NotionCalendarDataAccessObject implements GetEventsDataAccessInterf
                     }
 
                     events.add(new Event(eventName, date, startTime, endTime, calendarApi));
-                } catch (Exception e) {
-                    System.err.println("Error parsing individual event: " + e.getMessage());
-                    e.printStackTrace();
+                }
+                catch (Exception exception) {
+                    System.err.println("Error parsing individual event: " + exception.getMessage());
+                    exception.printStackTrace();
                 }
             }
-        } catch (Exception e) {
-            System.err.println("Error parsing events response: " + e.getMessage());
-            e.printStackTrace();
+        }
+        catch (Exception exception) {
+            System.err.println("Error parsing events response: " + exception.getMessage());
+            exception.printStackTrace();
         }
     }
 
@@ -201,6 +211,7 @@ public class NotionCalendarDataAccessObject implements GetEventsDataAccessInterf
 
     @Override
     public boolean addEvent(Event event) {
+        boolean flag = false;
         try {
             final String notionApiKey = calendar.getNotionToken();
             final String dbId = calendar.getDatabaseID();
@@ -214,16 +225,17 @@ public class NotionCalendarDataAccessObject implements GetEventsDataAccessInterf
             final int responseCode = connection.getResponseCode();
 
             if (responseCode == HttpURLConnection.HTTP_OK) {
-                return true;
-            } else {
-                System.out.println("Failed to add event. Response code: " + responseCode);
-                return false;
+                flag = true;
             }
-        } catch (Exception exception) {
+            else {
+                System.out.println("Failed to add event. Response code: " + responseCode);
+            }
+        }
+        catch (Exception exception) {
             System.err.println("Error adding event: " + exception.getMessage());
             exception.printStackTrace();
-            return false;
         }
+        return flag;
     }
 
     private void sendRequest(HttpURLConnection connection, JSONObject requestData) throws IOException {
@@ -259,8 +271,8 @@ public class NotionCalendarDataAccessObject implements GetEventsDataAccessInterf
         // Event name (Title)
         final JSONObject titleProperty = new JSONObject();
         titleProperty.put(TYPE, TITLE);
-        JSONArray titleArray = new JSONArray();
-        JSONObject titleText = new JSONObject();
+        final JSONArray titleArray = new JSONArray();
+        final JSONObject titleText = new JSONObject();
         titleText.put(TYPE, "text");
         titleText.put("text", new JSONObject().put("content", event.getEventName()));
         titleArray.put(titleText);
@@ -276,10 +288,11 @@ public class NotionCalendarDataAccessObject implements GetEventsDataAccessInterf
         // Start Time property
         final JSONObject startTimeProperty = new JSONObject();
         startTimeProperty.put(TYPE, "rich_text");
-        JSONArray startTimeArray = new JSONArray();
-        JSONObject startTimeText = new JSONObject();
+        final JSONArray startTimeArray = new JSONArray();
+        final JSONObject startTimeText = new JSONObject();
         startTimeText.put(TYPE, "text");
-        startTimeText.put("text", new JSONObject().put("content", event.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm"))));
+        startTimeText.put("text", new JSONObject().put("content", event.getStartTime()
+                .format(DateTimeFormatter.ofPattern("HH:mm"))));
         startTimeArray.put(startTimeText);
         startTimeProperty.put("rich_text", startTimeArray);
         properties.put(START_TIME_PROPERTY_NAME, startTimeProperty);
@@ -287,10 +300,11 @@ public class NotionCalendarDataAccessObject implements GetEventsDataAccessInterf
         // End Time property
         final JSONObject endTimeProperty = new JSONObject();
         endTimeProperty.put(TYPE, "rich_text");
-        JSONArray endTimeArray = new JSONArray();
-        JSONObject endTimeText = new JSONObject();
+        final JSONArray endTimeArray = new JSONArray();
+        final JSONObject endTimeText = new JSONObject();
         endTimeText.put(TYPE, "text");
-        endTimeText.put("text", new JSONObject().put("content", event.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm"))));
+        endTimeText.put("text", new JSONObject().put("content", event.getEndTime()
+                .format(DateTimeFormatter.ofPattern("HH:mm"))));
         endTimeArray.put(endTimeText);
         endTimeProperty.put("rich_text", endTimeArray);
         properties.put(END_TIME_PROPERTY_NAME, endTimeProperty);
@@ -326,16 +340,23 @@ public class NotionCalendarDataAccessObject implements GetEventsDataAccessInterf
 
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 result = true;
-            } else {
+            }
+            else {
                 System.out.println("Failed to delete event! Response code: " + responseCode);
             }
-        } catch (Exception exception) {
+        }
+        catch (Exception exception) {
             System.err.println("Error deleting event: " + exception.getMessage());
             exception.printStackTrace();
         }
         return result;
     }
 
+    /**
+     * Returns the event ID of an event.
+     * @param event the event
+     * @return the event ID
+     */
     public String getEventID(Event event) {
         String pageId = null;
         try {
@@ -383,34 +404,35 @@ public class NotionCalendarDataAccessObject implements GetEventsDataAccessInterf
                         break;
                     }
                 }
-            } else {
+            }
+            else {
                 System.out.println("Failed to fetch pages. Response code: " + responseCode);
-                String errorResponse = getErrorResponse(connection);
+                final String errorResponse = getErrorResponse(connection);
                 System.err.println("Error response: " + errorResponse);
             }
-        } catch (Exception exception) {
+        }
+        catch (Exception exception) {
             System.err.println("Error fetching event ID: " + exception.getMessage());
             exception.printStackTrace();
         }
         return pageId;
     }
 
-
     private int createDeleteEventConnection(String notionApiKey, String pageId) throws Exception {
-        OkHttpClient client = new OkHttpClient();
+        final OkHttpClient client = new OkHttpClient();
 
         // Construct the URL
-        String url = NOTION_API_BASE_URL + "/pages/" + pageId;
+        final String url = NOTION_API_BASE_URL + "/pages/" + pageId;
         System.out.println(url);
 
         // Create the request body
-        RequestBody body = RequestBody.create(
+        final RequestBody body = RequestBody.create(
                 "{\"archived\": true}",
                 MediaType.parse("application/json")
         );
 
         // Build the PATCH request
-        Request request = new Request.Builder()
+        final Request request = new Request.Builder()
                 .url(url)
                 .patch(body)
                 .addHeader("Authorization", "Bearer " + notionApiKey)
@@ -424,13 +446,15 @@ public class NotionCalendarDataAccessObject implements GetEventsDataAccessInterf
                 // Print the response body for more details
                 System.out.println("Response body: " + response.body().string());
                 return response.code();
-            } else {
+            }
+            else {
                 System.out.println("Event deleted successfully!");
                 System.out.println("Response body: " + response.body().string());
                 return response.code();
             }
-        } catch (IOException e) {
-            System.out.println("Error while sending the request: " + e.getMessage());
+        }
+        catch (IOException ioException) {
+            System.out.println("Error while sending the request: " + ioException.getMessage());
             return 400;
         }
     }
@@ -440,12 +464,13 @@ public class NotionCalendarDataAccessObject implements GetEventsDataAccessInterf
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(connection.getErrorStream()))) {
             String line;
-            StringBuilder responseBuilder = new StringBuilder();
+            final StringBuilder responseBuilder = new StringBuilder();
             while ((line = reader.readLine()) != null) {
                 responseBuilder.append(line);
             }
             errorResponse = responseBuilder.toString();
-        } catch (Exception e) {
+        }
+        catch (Exception exception) {
             errorResponse = "Could not read error response";
         }
         return errorResponse;
