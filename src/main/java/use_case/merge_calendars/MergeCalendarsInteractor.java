@@ -1,14 +1,17 @@
 package use_case.merge_calendars;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
 import data_access.CalendarDataAccessObjectFactory;
 import data_access.GetEventsDataAccessInterface;
 import entity.Calendar;
 import entity.Event;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-
+/**
+ * Use-case interactor for the Merge Calendars use-case.
+ */
 public class MergeCalendarsInteractor implements MergeCalendarsInputBoundary {
     private final CalendarDataAccessObjectFactory calendarDataAccessObjectFactory;
     private final MergeCalendarsOutputBoundary mergeCalendarsPresenter;
@@ -23,32 +26,33 @@ public class MergeCalendarsInteractor implements MergeCalendarsInputBoundary {
     @Override
     public void execute(MergeCalendarsInputData inputData) {
         try {
-            List<Event> allEvents = new ArrayList<>();
-            List<Calendar> calendars = inputData.getCalendars();
+            final List<Event> allEvents = new ArrayList<>();
+            final List<Calendar> calendars = inputData.getCalendars();
 
             for (Calendar calendar : calendars) {
-                GetEventsDataAccessInterface getEventsDataAccessObject =
+                final GetEventsDataAccessInterface getEventsDataAccessObject =
                         (GetEventsDataAccessInterface) calendarDataAccessObjectFactory
                                 .getCalendarDataAccessObject(calendar);
 
-                List<Event> calendarEvents = getEventsDataAccessObject.fetchEventsMonth(
+                final List<Event> calendarEvents = getEventsDataAccessObject.fetchEventsMonth(
                         LocalDate.parse(inputData.getDate()));
                 allEvents.addAll(calendarEvents);
             }
 
             // Sort events by date and time
-            allEvents.sort((e1, e2) -> {
-                int dateCompare = e1.getDate().compareTo(e2.getDate());
+            allEvents.sort((event1, event2) -> {
+                final int dateCompare = event1.getDate().compareTo(event2.getDate());
                 if (dateCompare != 0) {
                     return dateCompare;
                 }
-                return e1.getStartTime().compareTo(e2.getStartTime());
+                return event1.getStartTime().compareTo(event2.getStartTime());
             });
 
-            MergeCalendarsOutputData outputData = new MergeCalendarsOutputData(calendars, allEvents, false);
+            final MergeCalendarsOutputData outputData = new MergeCalendarsOutputData(calendars, allEvents, false);
             mergeCalendarsPresenter.prepareSuccessView(outputData);
-        } catch (Exception e) {
-            mergeCalendarsPresenter.prepareFailView("Error merging calendars: " + e.getMessage());
+        }
+        catch (Exception exception) {
+            mergeCalendarsPresenter.prepareFailView("Error merging calendars: " + exception.getMessage());
         }
     }
 }

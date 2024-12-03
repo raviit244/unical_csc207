@@ -1,9 +1,12 @@
 package use_case.merge_calendars;
 
-import entity.Calendar;
-
 import java.util.List;
 
+import entity.Calendar;
+
+/**
+ * Input Data for the Merge Calendars use-case.
+ */
 public class MergeCalendarsInputData {
     private final List<Calendar> calendars;
     private final String date;

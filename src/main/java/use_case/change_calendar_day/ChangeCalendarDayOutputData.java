@@ -1,10 +1,13 @@
 package use_case.change_calendar_day;
 
+import java.util.ArrayList;
+
 import entity.Calendar;
 import entity.Event;
 
-import java.util.ArrayList;
-
+/**
+ * Output Data for the Calendar Day View use-case.
+ */
 public class ChangeCalendarDayOutputData {
     private final ArrayList<Calendar> calendarList;
     private final ArrayList<Event> eventList;

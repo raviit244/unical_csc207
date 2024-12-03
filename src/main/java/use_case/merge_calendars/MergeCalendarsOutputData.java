@@ -1,10 +1,13 @@
 package use_case.merge_calendars;
 
+import java.util.List;
+
 import entity.Calendar;
 import entity.Event;
 
-import java.util.List;
-
+/**
+ * Output Data for the Merge Calendars use-case.
+ */
 public class MergeCalendarsOutputData {
     private final List<Calendar> calendars;
     private final List<Event> events;
