@@ -17,5 +17,9 @@ public interface User {
      */
     String getPassword();
 
+    /**
+     * Adds a calendar to the user's list of calendars.
+     * @param calendar the calendar to be added
+     */
     void addCalendar(Calendar calendar);
 }
