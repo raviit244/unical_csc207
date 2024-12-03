@@ -1,9 +1,9 @@
 package data_access;
 
-import entity.Event;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
+
+import entity.Event;
 
 /**
  * Interface for fetching events from a calendar.
